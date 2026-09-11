@@ -1,0 +1,36 @@
+var temp=new GameObject("DoorTransition_Validation_Temporary");temp.hideFlags=HideFlags.HideAndDontSave;
+try{
+var interactable=temp.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+var transition=temp.AddComponent<DoorSceneTransition>();
+var leftObject=new GameObject("TestLeft");leftObject.transform.SetParent(temp.transform);
+var rightObject=new GameObject("TestRight");rightObject.transform.SetParent(temp.transform);
+var otherObject=new GameObject("TestOther");otherObject.transform.SetParent(temp.transform);
+var left=leftObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
+var right=rightObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
+var other=otherObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRRayInteractor>();
+var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance;
+var type=typeof(DoorSceneTransition);
+type.GetField("interactable",flags).SetValue(transition,interactable);
+type.GetField("leftController",flags).SetValue(transition,left);
+type.GetField("rightController",flags).SetValue(transition,right);
+var method=type.GetMethod("HasTriggerRequest",flags);
+foreach(var c in new[]{left,right,other}){c.activateInput.inputSourceMode=UnityEngine.XR.Interaction.Toolkit.Inputs.Readers.XRInputButtonReader.InputSourceMode.ManualValue;c.activateInput.manualPerformed=true;c.activateInput.manualFramePerformed=Time.frameCount-1;}
+var results=new System.Collections.Generic.List<string>();
+System.Action<string,UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor,bool> check=(name,c,expected)=>{var actual=(bool)method.Invoke(transition,new object[]{c});if(actual!=expected)throw new System.Exception(name+" expected "+expected+" got "+actual);results.Add("PASS "+name);};
+left.activateInput.manualFramePerformed=Time.frameCount;
+check("trigger without hover",left,false);
+interactable.interactorsHovering.Add(left);
+check("left hover plus fresh trigger without selection",left,true);
+left.activateInput.manualFramePerformed=Time.frameCount-1;
+left.activateInput.manualPerformed=true;
+check("held trigger does not retrigger",left,false);
+right.activateInput.manualFramePerformed=Time.frameCount;
+check("other hand trigger cannot activate left hover",right,false);
+interactable.interactorsHovering.Clear();interactable.interactorsHovering.Add(right);
+check("right hover plus fresh trigger without selection",right,true);
+interactable.interactorsHovering.Add(other);other.activateInput.manualFramePerformed=Time.frameCount;
+check("unconfigured interactor rejected",other,false);
+right.enabled=false;check("disabled controller rejected",right,false);
+check("null controller rejected",null,false);
+return string.Join("\n",results.ToArray());
+}finally{UnityEngine.Object.DestroyImmediate(temp);}

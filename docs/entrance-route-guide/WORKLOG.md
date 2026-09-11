@@ -238,3 +238,102 @@ Position/Rotation은 월드, Scale은 로컬.
 - Scene 및 XR Transform 변경 없음. Console Error 0 / Warning 0 확인. HMD 실기 검증은 수행하지 않았다.
 - 이번 변경: Festival_Canopy_Cloth.mat 저장, HANDOFF.md, WORKLOG.md, 현재 상태 PNG. 별도 Scene 백업 및 Git 커밋·푸시는 수행하지 않았다.
 - 다음 작업: HMD 실기 확인, 스토리 확정 후 한국적 장식과 초대 문구 정교화. 전체 경로 확대는 추가 요청 시 진행.
+
+## 2026-09-11 KST — Naganeupseong 기존 재질 재사용 분석
+
+- Unity MCP로 `Assets/Naganeupseong`의 Material 335개와 `Unreal/PBR_Shaders` 연결 구조를 조사했다.
+- 천·목재·돗자리 후보의 Base Color/Normal/Roughness/AO 텍스처와 현재 제작 Mesh UV를 비교했다.
+- 가장 유력한 재사용 후보는 연속적인 목재 결을 가진 `Assets/Naganeupseong/Resource/Materials/M_Pillar01b.mat`. 천막 기둥·깃대·가로대에 시험 가능하나 실제 화면 비교 후 적용한다.
+- `M_Cloth_Roller`, `M_Bed_Clothes`, `M_Pillow`, `M_Mat`은 원본 소품용 UV 아틀라스라 현재 천막·깃발에 직접 사용하기 부적합하다.
+- `M_Straw_Mat01a`는 돗자리에는 적합하지만 잔칫천이나 깃발에는 부적합하다.
+- `Festival_Hanging_Ribbon.asset`은 UV가 없어 텍스처 기반 재질을 직접 사용할 수 없다.
+- Scene, 기존 재질, XR, Terrain을 변경하지 않았다. 별도 백업 및 Git 커밋·푸시 없음.
+
+## 2026-09-11 — 깃발 재질 비교본 생성
+
+사용자 요청으로 원본 왼쪽 깃발 옆에 동일 형태의 비교본을 생성했다.
+- 경로: RouteGuide/Entrance/EntranceFlag_L_MaterialComparison
+- Position: (456.83650, 9.14307, 706.88170). 원본에서 바깥쪽 1.8m, Terrain 높이에 맞춤. 회전·스케일·메시 형태는 원본과 동일.
+- 목재 기둥/가로대/등 프레임: Assets/Naganeupseong/Resource/Materials/M_Pillar01b.mat
+- 넓은 깃발 천: Assets/Naganeupseong/Resource/Materials/M_Bed_Clothes.mat
+- 리본과 등 종이 등 나머지는 원본 재질 유지. 재질 에셋 자체 수정 없음.
+- 비교본 Collider는 비활성화. 비교용 임시 배치이며 최종 동선용 배치가 아님.
+- 원본 Transform 및 XR Transform 동일 확인, TerrainCollider 활성 유지, Console Error/Warning 0. 대상 Scene 저장 완료.
+- 이미지: images/20260911-flag-material-comparison.png. 화면 왼쪽 붉은 천이 비교본, 가운데 밝은 천이 원본 왼쪽 깃발.
+- 변경 파일: Assets/Scenes/main_playoursound.unity, 이 문서와 WORKLOG.md, 위 PNG. 백업 파일·커밋·푸시 없음. HMD 미검증.
+- 다음 작업은 사용자 비교 결과에 따라 적용 재질을 결정하고 비교용 배치를 정리하는 것.
+
+## 2026-09-11 — 사용자 제공 천 재질 5종 비교 제작
+
+사용자 제공 D:/2026 윤우상/마테리얼의 ZIP 5개에서 텍스처만 추출. 외부 다운로드 없음. 원본 압축파일 보존.
+- 생성: RouteGuide/Entrance/FabricMaterialComparisons 아래 동일 형태 깃발 5개. 공통 목재 M_Pillar01b, 넓은 천만 각 소재로 변경. 리본/등 종이 유지. Collider 모두 비활성.
+- Sample_1 crepe_satin_2k: (457.2307,9.1910,709.6967)
+- Sample_2 denim_fabric_06_2k: (458.7684,9.1925,710.6324)
+- Sample_3 jeans-fabric-unity: (460.3061,9.2227,711.5680)
+- Sample_4 quatrefoil_jacquard_fabric_2k: (461.8438,9.2541,712.5037)
+- Sample_5 twill-fabric-unity: (463.3815,9.2682,713.4393)
+- 新 재질은 모두 Unreal/PBR_Shaders. Albedo sRGB, 데이터맵 Linear, OpenGL Normal은 NormalMap importer 사용. 2K 제한, mipmap 활성.
+- jeans/twill metallic PSD는 Unity 패킹 관례인 R=Metallic, Alpha=Smoothness로 해석해 별도 Metallic 및 1-Alpha Roughness 맵 생성. 제공 명세는 없어 이 채널 의미는 추정이며 재질 최종 승인 전 확인 대상.
+- jacquard AO는 ARM의 R에서 추출. metallic 맵 없는 denim은 비금속 0. Displacement/Height는 사용하지 않음.
+- 비교용 천 Mesh는 원본 복제 후 Tangent 재계산, 형상/UV 유지. 원본 Mesh 수정 없음.
+- 파일: Assets/RouteGuide/Entrance/FabricSamples/ (텍스처24개, 파생맵, 재질5개, 비교메시5개 및 meta), Assets/Scenes/main_playoursound.unity, 이 MD/WORKLOG와 images/20260911-five-fabric-samples.png, 20260911-fabric-comparison-close.png, 20260911-jacquard-detail.png.
+- 근접 비교 이미지의 새 샘플 5개는 왼쪽부터 twill, jacquard, jeans, denim, crepe satin 순서. 오른쪽 뒤에는 이전 비교본과 원본 깃발이 보임.
+- XR Transform 보존 확인, Console Error/Warning 0, Scene 저장. HMD 미검증. 비교용 임시 배치로 최종 배치 아님. 별도 백업/커밋/푸시 없음.
+- 다음: 사용자가 천을 선택하면 최종 깃발에 반영하고 비교군 정리. 현재 원본 2개는 그대로 보존.
+
+## 2026-09-11 — 잔치마을 에셋 구성 방향 확정
+
+사용자가 지정한 군기/영기/KHS Flag A·B·C/천막/Linen/자카드·새틴의 역할을 FESTIVAL_ART_DIRECTION.md에 정리했다. 다음 제작 시 해당 명세를 우선 참고한다. 개별 모델 링크 및 실제 도입 여부는 아직 확정되지 않았으며 이번에는 MD만 작성했다.
+사용자가 비교용 깃발을 삭제했다고 알렸고 직전 Unity MCP 확인에서 FabricMaterialComparisons와 EntranceFlag_L_MaterialComparison은 없었으며 EntranceFlag_L/R는 남아 있었다. 당시 Scene은 미저장 상태였다. 이전 생성 로그와 이미지는 과거 기록이며 현재 배치를 뜻하지 않는다. 삭제한 비교본을 다시 생성하지 않는다.
+
+## 2026-09-11 10:43 — 실제 유산 깃발 입구 배치 완료
+
+최신 사용자 결정: KHS Flag A/B 제외. 사용자 제공 팔달위 ZIP, 장안위 ZIP, Flag C GLB만 사용.
+- RouteGuide/Entrance/HeritageRouteFlags 생성. Southern_Entrance (455.29880,9.04372,705.94600), Northern_Entrance (452.30870,8.82447,704.12680), FlagC_Next_1 (456.96210,9.18276,703.21230), FlagC_Next_2 (453.97210,9.01274,701.39310).
+- 회전 Y 148.6813도. 군기 원본 약4.77m → 0.65배, Flag C 천 0.7배 및 높이2.35m. Flag C는 천만 있어 기존 M_Pillar01b 재질 기둥 추가.
+- 기존 EntranceFlag_L/R는 삭제 없이 비활성화. 사용자가 삭제한 비교본은 복구하지 않음. 사용자 미저장 삭제 상태를 포함하여 대상 Scene 저장.
+- GLB를 정적 메시·텍스처로 변환. 신규 패키지 없음. 노드 변환/좌표계/삼각형 winding/UV 변환, 앞뒤 표시용 메시 면 복제, Tangent 재계산. 애니메이션 없음.
+- Assets/RouteGuide/Entrance/HeritageFlags 아래 Southern/Northern/FlagC 각각 메시 및 Unreal/PBR_Shaders 재질 생성. Albedo sRGB, NormalMap, Roughness/Metallic/AO linear, 2K 제한. 원본 GLB 문양 유지. 원본 압축파일 수정 없음.
+- 변경 Scene은 main_playoursound만. XR Transform 전후 동일, TerrainCollider 활성, 전방8m 33지점 캡슐검사 장애물0. Console Error/Warning 0. HMD 실기 미검증.
+- 이미지: images/20260911-heritage-flags-start.png. 이전 비교 이미지는 현재 상태가 아님.
+- 변경 파일: Assets/Scenes/main_playoursound.unity, Assets/RouteGuide/Entrance/HeritageFlags/ 및 meta, MD/로그/위 PNG. Temp/convert_route_flags.py는 변환 작업용 임시 도구이며 런타임 스크립트 아님.
+- 별도 백업/커밋/푸시 없음. 다음 후보: HMD에서 깃발 가림과 방향 인지 확인, 사용자 의견에 따라 높이·반복 간격 조정. 전체 게임장까지 경로 확장은 이번에 하지 않음.
+
+## 2026-09-11 — EntranceFlag로 두 게임장까지 길 안내 확장
+
+사용자가 전체 길목 안내와 차분한 EntranceFlag 사용을 요청하여 기존 입구 한정 범위를 두 목적지 문 앞까지 확장했다.
+- HeritageRouteFlags 비활성화. EntranceFlag_L/R 재활성화. 기존 재질 보존, Unlit 변경 없음.
+- RouteGuide/EntranceFlagRoutes: 공통구간7, 사방치기방향5(문 앞 포함), 장구문앞1이 아니라 총12개: CommonRoute_0..6 7개, SabangchigiRoute_7..10 4개, Janggu_DoorApproach_11 1개. 0.85배 복제, 약6m 간격, Collider 비활성.
+- Terrain 높이 및 Physics 캡슐 장애물 지도를 기반으로 동선 산출. 장구는 문 남쪽 (466,667), 사방치기는 접근 가능한 문 앞 (488.5,664)까지 연결. 닫힌 문 통과는 보장하지 않음.
+- 갈림길에 접근 시 화면 기준 왼쪽 사방치기/오른쪽 장구 표지. 각 문 앞에 목적지명 표지. NotoSansKR 기존 원본에서 RouteDestination_SDF.asset 추가, 필요한 글리프 포함.
+- 실제 Transform은 route-flag-transforms.json 참고. 이미지 images/20260911-entranceflag-junction.png.
+- XR Transform 동일, TerrainCollider 활성, Console Error/Warning0. main_playoursound 저장. 실제 HMD 전체 이동은 미검증.
+- 변경: 대상 Scene, Fonts/RouteDestination_SDF.asset 및 meta, 문서/Transform JSON/이미지. 새 런타임 스크립트·패키지·백업·커밋·푸시 없음.
+- 다음: HMD 전체 동선 따라가며 깃발 가림과 간격 및 분기 표지 가독성 조정.
+
+## 2026-09-11 — 사용자 수정 보존, 깃발 L/R 정비 및 문 트리거 전환
+
+- Unity MCP 확인: Unity 6000.3.10f1 / XRI 3.3.1, 활성 Assets/Scenes/main_playoursound.unity. 시작 시 사용자 미저장 변경 있음. 사용자 배치/삭제 상태를 그대로 이어서 저장.
+- RouteGuide/EntranceFlagRoutes 현재 9개 유지. 삭제된 SabangchigiRoute_9/_10 및 Janggu_DoorApproach_11 복구하지 않음.
+- SabangchigiRoute_7, SabangchigiRoute_8: 담장 방향 Raycast와 화면 확인 후 기존 EntranceFlag_R의 자식 localPosition.x 사용. 천/리본/가로대와 등불/등걸이 좌우 교체. 각 자식의 y/z, 회전, 크기 및 재질 유지. 깃대 루트 Transform 변경 없음.
+- _7 Position (474.56980,9.58876,665.25760), Rotation (0,106.01210,0), Scale (0.85,0.85,0.85).
+- _8 Position (481.29350,9.58473,664.28280), Rotation (0,110.55600,0), Scale (0.85,0.85,0.85).
+- 전체 현재 Transform: route-flag-transforms.json. CommonRoute_3..6 등의 사용자 직접 이동 반영.
+- AllLevel/Door01k (3) → Assets/Scenes/JangGu.unity.
+- AllLevel/Door01k (7) → Assets/Scenes/SaBang.unity.
+- 각 문에 XRSimpleInteractable + DoorSceneTransition 추가. 기존 MeshCollider를 상호작용 대상으로 등록; Collider 형상/활성/물리 설정 변경 없음. 비볼록 MeshCollider의 ClosestPoint 문제를 피하도록 interactable 거리 계산은 TransformPosition 사용.
+- 활성 Left Controller/Right Controller의 기존 NearFarInteractor를 명시 연결. Activate 바인딩은 각각 <XRController>{LeftHand}/{TriggerButton}, <XRController>{RightHand}/{TriggerButton}.
+- 문을 hover 중인 같은 컨트롤러의 새 트리거 입력만 LateUpdate에서 판정. 그립/select 불필요. 기존 XR 입력/이동 설정 변경 없음. Scene 비동기 Single 로드 및 중복 전환 방지.
+- ProjectSettings/EditorBuildSettings.asset에 두 목적지 Scene 활성 등록. 기존 SampleScene 및 순서 보존. 목적지 Scene을 열거나 저장하지 않음. 빌드 첫 Scene은 기존 SampleScene 그대로.
+- XR 전후 동일(Transform 직렬화 비교): Position (450.5939,9.55,709.6385), Euler (1.30743086,148.6813,-0.000296923739), Scale (1,1,1).
+- Terrain / TerrainCollider 활성 유지. 추가 깃발 Collider 비활성 유지. 새 재질/Unlit 변경 없음.
+- Editor 검증: 스크립트 컴파일 성공, Console Error/Warning 전후 0. 임시 오브젝트를 이용한 입력 판정 8개 검사 통과: 비hover, 좌/우 fresh trigger, held trigger, 반대 손, 미등록 interactor, 비활성 controller, null. 임시 테스트 오브젝트는 finally에서 제거.
+- Scene View 및 Main Camera Game View 확인. 실제 컨트롤러 ray→hover와 목적지 로드는 HMD 실기 검증 필요. 목적지 Scene 보존을 위해 실제 Scene 전환 테스트는 실행하지 않음.
+- 변경: Assets/Scenes/main_playoursound.unity; Assets/RouteGuide/Entrance/Scripts.meta 및 Scripts/DoorSceneTransition.cs(.meta); ProjectSettings/EditorBuildSettings.asset; docs/entrance-route-guide/HANDOFF.md, WORKLOG.md, route-flag-transforms.json, door-trigger-validation.cs.txt 및 images/20260911-door-route-flags-LR.png, 20260911-door-flags-scene-view.png, 20260911-door-interaction-game-view.png.
+- 백업 Scene/파일, 커밋, 푸시 없음. Git diff의 변경 Scene은 main_playoursound 하나.
+- 다음: HMD에서 양손 조준→트리거로 각 게임 진입, 누른 채 시선 이동 시 오작동 여부 확인. 배포 첫 Scene 변경은 별도 요청 시 처리.
+
+## 2026-09-11 — 스크립트 저장 위치 통일
+- 사용자 지침: 앞으로 작성하는 프로젝트 스크립트는 Assets/Script 폴더에 저장한다.
+- DoorSceneTransition.cs를 Assets/RouteGuide/Entrance/Scripts에서 Assets/Script/DoorSceneTransition.cs로 Unity AssetDatabase.MoveAsset을 사용하여 이동했다. meta GUID와 Scene 컴포넌트 참조 유지. 기능 변경 없음.
+- 과거 기록의 이전 스크립트 경로는 작업 당시 경로이며 현재 경로는 Assets/Script/DoorSceneTransition.cs이다.

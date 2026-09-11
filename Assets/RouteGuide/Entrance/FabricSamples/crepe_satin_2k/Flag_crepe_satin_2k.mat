@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Flag_crepe_satin_2k
+  m_Shader: {fileID: 4800000, guid: abc00000000012281009583634745518, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - Material_Texture2D_0:
+        m_Texture: {fileID: 2800000, guid: 7d25dd31de7308243aa3e7a2281bfd0c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Material_Texture2D_1:
+        m_Texture: {fileID: 2800000, guid: 06b7c1593f74c2047b8b90cd072e8754, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Material_Texture2D_2:
+        m_Texture: {fileID: 2800000, guid: f7caecc22f746504380950ae7ebadbce, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Material_Texture2D_3:
+        m_Texture: {fileID: 2800000, guid: 5be0a483cb94f3a4197536603b8f6937, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Material_Texture2D_4:
+        m_Texture: {fileID: 2800000, guid: 275e63631774ff74d86b2c09760436c1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats: []
+    m_Colors:
+    - LocalObjectBoundsMax: {r: 100, g: 100, b: 100, a: 0}
+    - LocalObjectBoundsMin: {r: 0, g: 0, b: 0, a: 0}
+    - View_BufferSizeAndInvSize: {r: 1920, g: 1080, b: 0.00052, a: 0.00092}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
