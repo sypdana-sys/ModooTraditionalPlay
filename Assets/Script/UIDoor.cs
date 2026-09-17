@@ -1,3 +1,4 @@
+// 플레이어 접근 시 게임 시작 확인 UI를 표시하고 선택 결과를 처리한다.
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -17,6 +18,8 @@ public class UIDoor : MonoBehaviour
     [Header("Teleport")]
     [SerializeField] private XROrigin xrOrigin;
     [SerializeField] private Transform spawnPoint;
+    [Tooltip("사방치기 시작 시 연결한다. 다른 게임의 문은 비워둘 수 있다.")]
+    [SerializeField] private SabangGameManager gameManager;
 
     [Header("Display")]
     [SerializeField] private TMP_FontAsset koreanFont;
@@ -31,6 +34,7 @@ public class UIDoor : MonoBehaviour
     [SerializeField] private UnityEvent onNo = new UnityEvent();
 
     private Canvas display;
+    private Camera playerCamera;
     private bool inside;
     private bool answered;
 
@@ -43,6 +47,7 @@ public class UIDoor : MonoBehaviour
             GameObject point = GameObject.Find("SpawnPoint");
             if (point != null) spawnPoint = point.transform;
         }
+        CachePlayerCamera();
 
         BuildDisplay();
         if (koreanFont == null)
@@ -58,6 +63,7 @@ public class UIDoor : MonoBehaviour
             Camera mainCamera = Camera.main;
             if (mainCamera == null) return;
             playerHead = mainCamera.transform;
+            playerCamera = mainCamera;
         }
 
         // Horizontal proximity also works with room-scale movement and ground-level cubes.
@@ -92,28 +98,42 @@ public class UIDoor : MonoBehaviour
                 playerHead.position + forward * displayDistance,
                 Quaternion.LookRotation(forward, Vector3.up));
         }
-        display.worldCamera = playerHead.GetComponent<Camera>();
+        if (playerCamera == null) CachePlayerCamera();
+        display.worldCamera = playerCamera;
         display.gameObject.SetActive(true);
+    }
+
+    private void CachePlayerCamera()
+    {
+        if (playerHead != null) playerCamera = playerHead.GetComponent<Camera>();
     }
 
     public void SelectYes()
     {
-        if (!TryAcceptAnswer()) return;
-        MovePlayerToSpawnPoint();
+        if (!CanAcceptAnswer()) return;
+        if (gameManager != null && !gameManager.CanStartGame()) return;
+        if (!MovePlayerToSpawnPoint()) return;
+        if (gameManager != null && !gameManager.TryStartGame()) return;
+        answered = true;
+        display.gameObject.SetActive(false);
         onYes.Invoke();
     }
 
-    private void MovePlayerToSpawnPoint()
+    private bool MovePlayerToSpawnPoint()
     {
-        if (xrOrigin == null || spawnPoint == null)
+        if (xrOrigin == null || spawnPoint == null || xrOrigin.Camera == null || xrOrigin.Origin == null)
         {
-            Debug.LogWarning("UIDoor: XR Origin or SpawnPoint is not assigned.", this);
-            return;
+            Debug.LogWarning("UIDoor: XR Origin, Camera, Origin Base GameObject와 Spawn Point를 연결하세요.", this);
+            return false;
         }
 
         Vector3 cameraDestination = spawnPoint.position + Vector3.up * xrOrigin.CameraInOriginSpaceHeight;
         if (!xrOrigin.MoveCameraToWorldLocation(cameraDestination))
+        {
             Debug.LogWarning("UIDoor: Could not move the XR Origin to SpawnPoint.", this);
+            return false;
+        }
+        return true;
     }
 
     public void SelectNo()
@@ -123,10 +143,15 @@ public class UIDoor : MonoBehaviour
 
     private bool TryAcceptAnswer()
     {
-        if (!inside || answered || display == null || !display.gameObject.activeSelf) return false;
+        if (!CanAcceptAnswer()) return false;
         answered = true;
         display.gameObject.SetActive(false);
         return true;
+    }
+
+    private bool CanAcceptAnswer()
+    {
+        return inside && !answered && display != null && display.gameObject.activeSelf;
     }
 
     private void BuildDisplay()

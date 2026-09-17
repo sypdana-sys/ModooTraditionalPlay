@@ -1,5 +1,6 @@
 // 사방망의 위치 선택, 왕복 파워 게이지, 물리 투척과 실패 재시도를 관리한다.
 using TMPro;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -21,6 +22,8 @@ public class SabangStone : MonoBehaviour
     [SerializeField] private LayerMask groundLayers;
     [SerializeField] private LayerMask borderLayers;
     [SerializeField, Min(0.1f)] private float rayDistance = 10f;
+    [Tooltip("표시용 마커만 표면 위로 띄우는 거리(m). 실제 목표 위치에는 적용하지 않는다.")]
+    [SerializeField, Min(0f)] private float markerSurfaceOffset = 0.005f;
 
     [Header("직접 배치한 UI")]
     [SerializeField] private GameObject gaugeRoot;
@@ -39,10 +42,12 @@ public class SabangStone : MonoBehaviour
     [SerializeField, Min(0.1f)] private float flightTime = 1f;
     [SerializeField, Min(0.01f)] private float restingCenterHeight = 0.03f;
     [SerializeField, Min(0.01f)] private float settleSpeed = 0.15f;
+    [Tooltip("착지 안정화로 인정할 최대 회전 속도(rad/s)")]
+    [SerializeField, Min(0.01f)] private float settleAngularSpeed = 0.5f;
     [SerializeField, Min(0.01f)] private float settleDuration = 0.2f;
     [SerializeField, Min(1f)] private float flightTimeout = 5f;
     [SerializeField, Min(0.1f)] private float resultDuration = 1.2f;
-    [SerializeField] private bool startAutomatically = true;
+    [SerializeField] private bool startAutomatically = false;
 
     [Header("외부 게임 진행 연결")]
     [SerializeField] private UnityEvent onThrowSucceeded = new UnityEvent();
@@ -51,10 +56,15 @@ public class SabangStone : MonoBehaviour
     public ThrowState State { get; private set; }
     public int FailureCount { get; private set; }
     public float SelectedPower { get; private set; }
+    public Vector3 SelectedPoint => selectedPoint;
+    public int TargetNumber => targetNumber;
+    public bool StartsAutomatically => startAutomatically;
+    public event System.Action<ThrowState> StateChanged;
 
     private float elapsed, stableTime, chargingStartedAt;
     private Vector3 selectedPoint;
-    private bool triggerReleased, powerMatched, touchedBorder, groundContact;
+    private bool triggerReleased, powerMatched, touchedBorder;
+    private readonly HashSet<Collider> groundContacts = new HashSet<Collider>();
     private bool enabledInput;
 
     private void OnEnable()
@@ -68,38 +78,81 @@ public class SabangStone : MonoBehaviour
 
     private void Start()
     {
+        if (State != ThrowState.Idle) return;
         SetGauge(false);
-        if (targetMarker != null) targetMarker.gameObject.SetActive(false);
+        SetTargetMarker(false);
         ShowResult("");
         if (startAutomatically) BeginRound(targetNumber);
     }
 
     public void BeginRound(int number)
     {
-        if (map == null || stoneBody == null || stoneCollider == null || throwPoint == null ||
-            rayOrigin == null || rightTrigger == null || rightTrigger.action == null ||
-            number < 1 || number > 8 || requiredPowers == null || requiredPowers.Length != 8 ||
-            stoneBody.gameObject != gameObject || stoneCollider.attachedRigidbody != stoneBody)
-        {
-            Debug.LogError("SabangStone: 망 Rigidbody와 같은 오브젝트에 스크립트를 붙이고 참조 및 파워 8개를 확인하세요.", this);
-            return;
-        }
+        TryBeginRound(number);
+    }
+
+    public bool CanBeginRound(int number)
+    {
+        if (!isActiveAndEnabled) return ConfigurationError("SabangStone을 활성화하세요.");
+        if (map == null || !map.isActiveAndEnabled) return ConfigurationError("활성화된 Map을 연결하세요.");
+        if (stoneBody == null || stoneBody.gameObject != gameObject)
+            return ConfigurationError("SabangStone과 같은 오브젝트의 Rigidbody를 Stone Body에 연결하세요.");
+        if (stoneCollider == null || stoneCollider.attachedRigidbody != stoneBody ||
+            !stoneCollider.enabled || stoneCollider.isTrigger)
+            return ConfigurationError("Stone Body에 속한 활성 Collider를 연결하고 Is Trigger를 끄세요.");
+        if (throwPoint == null || throwPoint.IsChildOf(transform))
+            return ConfigurationError("망 자신이나 자식이 아닌 Throw Point를 연결하세요.");
+        if (rayOrigin == null) return ConfigurationError("오른손 Ray Origin을 연결하세요.");
+        if (rightTrigger == null || rightTrigger.action == null || !rightTrigger.action.enabled)
+            return ConfigurationError("활성화된 오른손 Trigger Input Action을 연결하세요.");
+        if (targetMarker == null || transform.IsChildOf(targetMarker))
+            return ConfigurationError("망 자신이나 부모가 아닌 별도 Target Marker를 연결하세요.");
+        if (tileLayers.value == 0 || (tileLayers.value & (1 << map.gameObject.layer)) == 0)
+            return ConfigurationError("Tile Layers에 Map 오브젝트의 Layer를 포함하세요.");
+        if ((tileLayers.value & (groundLayers.value | borderLayers.value)) != 0)
+            return ConfigurationError("Tile Layers는 Ground Layers 및 Border Layers와 분리하세요.");
+        if (groundLayers.value == 0 || borderLayers.value == 0)
+            return ConfigurationError("Ground Layers와 Border Layers를 지정하세요.");
+        if (gaugeRoot == null || powerSlider == null || successBand == null || resultText == null)
+            return ConfigurationError("Gauge Root, Power Slider, Success Band, Result Text를 연결하세요.");
+        if (transform.IsChildOf(gaugeRoot.transform) || resultText.transform.IsChildOf(gaugeRoot.transform))
+            return ConfigurationError("망과 Result Text는 꺼지는 Gauge Root 바깥에 배치하세요.");
+        if (flightTime <= 0f || flightTimeout <= flightTime || settleDuration <= 0f || resultDuration <= 0f)
+            return ConfigurationError("비행·안정화·결과 시간은 양수이며 Flight Timeout은 Flight Time보다 커야 합니다.");
+        if (number < 1 || number > 8 || requiredPowers == null || requiredPowers.Length != 8)
+            return ConfigurationError("목표 번호는 1~8, Required Powers는 8개로 설정하세요.");
+        return true;
+    }
+
+    private bool ConfigurationError(string message)
+    {
+        Debug.LogError("SabangStone: " + message, this);
+        return false;
+    }
+
+    public bool TryBeginRound(int number)
+    {
+        // On Yes 등에 BeginRound가 중복 연결되어도 진행 중인 선택을 초기화하지 않는다.
+        if (State != ThrowState.Idle && State != ThrowState.Complete) return false;
+        if (!CanBeginRound(number)) return false;
         targetNumber = number;
         ResetAttempt();
+        return true;
     }
 
     private void ResetAttempt()
     {
-        stoneBody.isKinematic = true;
+        FreezeStone();
         stoneBody.position = throwPoint.position;
         stoneBody.rotation = throwPoint.rotation;
-        touchedBorder = groundContact = false;
+        touchedBorder = powerMatched = false;
+        selectedPoint = Vector3.zero;
+        SelectedPower = 0f;
         triggerReleased = false;
         elapsed = stableTime = 0f;
-        State = ThrowState.Selecting;
         SetGauge(false);
         ShowResult("");
-        if (targetMarker != null) targetMarker.gameObject.SetActive(false);
+        SetTargetMarker(false);
+        SetState(ThrowState.Selecting);
     }
 
     private void Update()
@@ -138,15 +191,15 @@ public class SabangStone : MonoBehaviour
             && map.TryGetRegion(hit, out Map.Region region) && (int)region == targetNumber;
         if (targetMarker != null)
         {
-            if (targetMarker.gameObject.activeSelf != valid) targetMarker.gameObject.SetActive(valid);
-            if (valid) targetMarker.position = hit.point;
+            SetTargetMarker(valid);
+            if (valid) targetMarker.position = hit.point + map.transform.up * markerSurfaceOffset;
         }
         if (!confirm || !valid) return;
         selectedPoint = hit.point;
         chargingStartedAt = Time.time;
-        State = ThrowState.Charging;
         SetGauge(true);
         UpdateGauge(0f);
+        SetState(ThrowState.Charging);
     }
 
     private void UpdateCharging(bool confirm)
@@ -158,7 +211,10 @@ public class SabangStone : MonoBehaviour
 
     private void Throw(float power)
     {
+        if (State != ThrowState.Charging) return;
         SelectedPower = power;
+        SetGauge(false);
+        SetTargetMarker(false);
         float error = power - Mathf.Clamp(requiredPowers[targetNumber - 1], 0f, 100f);
         powerMatched = Mathf.Abs(error) <= tolerance;
         // 적정 파워는 선택 지점에 도달하고, 범위 밖에서는 오차에 비례해 거리가 변한다.
@@ -177,42 +233,65 @@ public class SabangStone : MonoBehaviour
         stoneBody.linearVelocity = (destination - centerOffset - stoneBody.position) / flightTime
             - 0.5f * Physics.gravity * flightTime;
         elapsed = stableTime = 0f;
-        touchedBorder = groundContact = false;
-        State = ThrowState.Flying;
+        touchedBorder = false;
+        groundContacts.Clear();
+        SetState(ThrowState.Flying);
     }
 
     private void FixedUpdate()
     {
         if (State != ThrowState.Flying) return;
         elapsed += Time.fixedDeltaTime;
-        stableTime = groundContact && stoneBody.linearVelocity.sqrMagnitude <= settleSpeed * settleSpeed
+        // 잠든 Rigidbody에는 OnCollisionStay가 생략되므로 Enter/Exit 사이 접촉을 보존한다.
+        groundContacts.RemoveWhere(IsInactiveCollider);
+        stableTime = groundContacts.Count > 0 && stoneBody.linearVelocity.sqrMagnitude <= settleSpeed * settleSpeed
+            && stoneBody.angularVelocity.sqrMagnitude <= settleAngularSpeed * settleAngularSpeed
             ? stableTime + Time.fixedDeltaTime : 0f;
-        groundContact = false;
         if (stableTime >= settleDuration) FinishThrow(false);
         else if (elapsed >= flightTimeout) FinishThrow(true);
     }
 
     private void FinishThrow(bool timedOut)
     {
+        if (State != ThrowState.Flying) return;
         bool success = !timedOut && powerMatched && !touchedBorder
             && map.TryGetRegion(stoneCollider.bounds.center, out Map.Region region)
             && (int)region == targetNumber;
-        stoneBody.isKinematic = true;
+        FreezeStone();
         elapsed = 0f;
         SetGauge(false);
-        if (targetMarker != null) targetMarker.gameObject.SetActive(false);
-        State = success ? ThrowState.Complete : ThrowState.Result;
+        SetTargetMarker(false);
         ShowResult(success ? "성공" : "실패");
+        if (!success) FailureCount++;
+        SetState(success ? ThrowState.Complete : ThrowState.Result);
         if (success) onThrowSucceeded.Invoke();
-        else { FailureCount++; onThrowFailed.Invoke(); }
+        else onThrowFailed.Invoke();
+    }
+
+    private void FreezeStone()
+    {
+        if (stoneBody == null) return;
+        if (!stoneBody.isKinematic)
+        {
+            stoneBody.linearVelocity = Vector3.zero;
+            stoneBody.angularVelocity = Vector3.zero;
+        }
+        stoneBody.isKinematic = true;
+        groundContacts.Clear();
+    }
+
+    private static bool IsInactiveCollider(Collider collider)
+    {
+        return collider == null || !collider.enabled || !collider.gameObject.activeInHierarchy;
     }
 
     private void OnCollisionEnter(Collision collision) { RegisterCollision(collision.collider); }
     private void OnCollisionStay(Collision collision) { RegisterCollision(collision.collider); }
+    private void OnCollisionExit(Collision collision) { groundContacts.Remove(collision.collider); }
     private void RegisterCollision(Collider other)
     {
         if (State != ThrowState.Flying) return;
-        if (InLayers(other, groundLayers)) groundContact = true;
+        if (InLayers(other, groundLayers)) groundContacts.Add(other);
         if (InLayers(other, borderLayers)) touchedBorder = true;
     }
     private void OnTriggerEnter(Collider other) { RegisterBorder(other); }
@@ -232,7 +311,7 @@ public class SabangStone : MonoBehaviour
     }
     private void SetGauge(bool visible)
     {
-        if (gaugeRoot != null) gaugeRoot.SetActive(visible);
+        if (gaugeRoot != null && gaugeRoot.activeSelf != visible) gaugeRoot.SetActive(visible);
         if (!visible || successBand == null) return;
         float required = Mathf.Clamp(requiredPowers[targetNumber - 1], 0f, 100f);
         Vector2 min = successBand.anchorMin, max = successBand.anchorMax;
@@ -247,15 +326,37 @@ public class SabangStone : MonoBehaviour
     }
     private void ShowResult(string message)
     {
-        if (resultText != null) resultText.text = message;
+        if (resultText != null && resultText.text != message) resultText.text = message;
+    }
+    private void SetTargetMarker(bool visible)
+    {
+        if (targetMarker != null && targetMarker.gameObject.activeSelf != visible)
+            targetMarker.gameObject.SetActive(visible);
     }
     private void OnDisable()
     {
-        if (enabledInput && rightTrigger != null) rightTrigger.action.Disable();
+        if (enabledInput && rightTrigger != null && rightTrigger.action != null) rightTrigger.action.Disable();
         enabledInput = false;
-        if (stoneBody != null && State == ThrowState.Flying) stoneBody.isKinematic = true;
-        State = ThrowState.Idle;
+        FreezeStone();
         SetGauge(false);
-        if (targetMarker != null) targetMarker.gameObject.SetActive(false);
+        ShowResult("");
+        SetTargetMarker(false);
+        SetState(ThrowState.Idle);
+    }
+
+    public void StopThrowing()
+    {
+        FreezeStone();
+        SetGauge(false);
+        ShowResult("");
+        SetTargetMarker(false);
+        SetState(ThrowState.Idle);
+    }
+
+    private void SetState(ThrowState next)
+    {
+        if (State == next) return;
+        State = next;
+        StateChanged?.Invoke(next);
     }
 }

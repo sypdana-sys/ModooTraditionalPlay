@@ -16,7 +16,8 @@ public class Map : MonoBehaviour
     [SerializeField, Min(0f)] private float borderMargin = 0.007f;
 
     private readonly List<Vector2[]> polygons = new List<Vector2[]>();
-    private readonly List<MeshCollider> regionColliders = new List<MeshCollider>();
+    private readonly List<float[]> inverseEdgeLengths = new List<float[]>();
+    private readonly Dictionary<Collider, int> colliderIndices = new Dictionary<Collider, int>();
     private readonly List<Mesh> meshes = new List<Mesh>();
     private GameObject regionsRoot;
     private Vector2 builtImageSize;
@@ -37,7 +38,7 @@ public class Map : MonoBehaviour
             collider.sharedMesh = mesh;
             collider.convex = true;
             collider.isTrigger = true;
-            regionColliders.Add(collider);
+            colliderIndices.Add(collider, i);
         }
     }
 
@@ -45,11 +46,10 @@ public class Map : MonoBehaviour
     public bool TryGetRegion(RaycastHit hit, out Region region)
     {
         region = Region.None;
-        int index = regionColliders.IndexOf(hit.collider as MeshCollider);
-        if (index < 0) return false;
+        if (hit.collider == null || !colliderIndices.TryGetValue(hit.collider, out int index)) return false;
         Vector3 local = transform.InverseTransformPoint(hit.point);
         if (Mathf.Abs(local.y - surfaceY) > heightTolerance ||
-            !Contains(polygons[index], new Vector2(local.x, local.z))) return false;
+            !Contains(index, new Vector2(local.x, local.z))) return false;
         region = (Region)(index + 1);
         return true;
     }
@@ -63,21 +63,23 @@ public class Map : MonoBehaviour
         Vector2 point = new Vector2(local.x, local.z);
         for (int i = 0; i < polygons.Count; i++)
         {
-            if (!Contains(polygons[i], point)) continue;
+            if (!Contains(i, point)) continue;
             region = (Region)(i + 1);
             return true;
         }
         return false;
     }
 
-    private bool Contains(Vector2[] polygon, Vector2 point)
+    private bool Contains(int polygonIndex, Vector2 point)
     {
         // 꼭짓점은 XZ 평면에서 반시계 방향이며 모든 변의 안쪽이어야 한다.
+        Vector2[] polygon = polygons[polygonIndex];
+        float[] edgeLengths = inverseEdgeLengths[polygonIndex];
         for (int i = 0; i < polygon.Length; i++)
         {
             Vector2 edge = polygon[(i + 1) % polygon.Length] - polygon[i];
             Vector2 offset = point - polygon[i];
-            float distance = (edge.x * offset.y - edge.y * offset.x) / edge.magnitude;
+            float distance = (edge.x * offset.y - edge.y * offset.x) * edgeLengths[i];
             if (distance <= borderMargin) return false;
         }
         return true;
@@ -93,6 +95,7 @@ public class Map : MonoBehaviour
     private void BuildPolygons()
     {
         polygons.Clear();
+        inverseEdgeLengths.Clear();
         Vector2 bl = Pixel(182, 1487), br = Pixel(1151, 1487);
         Vector2 tl = Pixel(182, 763), tr = Pixel(1151, 763), center = Pixel(667, 1125);
         polygons.Add(new[] { Pixel(182, 1849), Pixel(667, 1849), Pixel(667, 1487), bl });
@@ -110,6 +113,17 @@ public class Map : MonoBehaviour
             sky[i] = Pixel(666.5f + 484.5f * Mathf.Cos(angle), 401f - 362f * Mathf.Sin(angle));
         }
         polygons.Add(sky);
+        for (int polygonIndex = 0; polygonIndex < polygons.Count; polygonIndex++)
+        {
+            Vector2[] polygon = polygons[polygonIndex];
+            float[] lengths = new float[polygon.Length];
+            for (int i = 0; i < polygon.Length; i++)
+            {
+                float length = (polygon[(i + 1) % polygon.Length] - polygon[i]).magnitude;
+                lengths[i] = length > Mathf.Epsilon ? 1f / length : 0f;
+            }
+            inverseEdgeLengths.Add(lengths);
+        }
         builtImageSize = imageSize;
     }
 
@@ -117,16 +131,28 @@ public class Map : MonoBehaviour
     {
         int n = polygon.Length;
         Vector3[] vertices = new Vector3[n * 2];
-        List<int> triangles = new List<int>();
+        List<int> triangles = new List<int>(n * 12 - 12);
         for (int i = 0; i < n; i++)
         {
             vertices[i] = new Vector3(polygon[i].x, surfaceY - 0.01f, polygon[i].y);
             vertices[i + n] = new Vector3(polygon[i].x, surfaceY, polygon[i].y);
             int next = (i + 1) % n;
-            triangles.AddRange(new[] { i, i + n, next + n, i, next + n, next });
+            triangles.Add(i);
+            triangles.Add(i + n);
+            triangles.Add(next + n);
+            triangles.Add(i);
+            triangles.Add(next + n);
+            triangles.Add(next);
         }
         for (int i = 1; i < n - 1; i++)
-            triangles.AddRange(new[] { 0, i, i + 1, n, n + i + 1, n + i });
+        {
+            triangles.Add(0);
+            triangles.Add(i);
+            triangles.Add(i + 1);
+            triangles.Add(n);
+            triangles.Add(n + i + 1);
+            triangles.Add(n + i);
+        }
         Mesh mesh = new Mesh { name = "Map Region", vertices = vertices, triangles = triangles.ToArray() };
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
