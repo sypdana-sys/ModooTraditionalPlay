@@ -84,7 +84,8 @@ namespace FindOurSound.JangGuRhythm
 
         void SpawnNote(NoteData data, float hitTime)
         {
-            Note prefab = data.side == NoteSide.Left ? leftNotePrefab : rightNotePrefab;
+            // Cross(넘겨치기)는 RightSpawnPoint에서 원(Left) 모양 노트로 나온다.
+            Note prefab = data.side == NoteSide.Right ? rightNotePrefab : leftNotePrefab;
             RectTransform spawnPoint = data.side == NoteSide.Left ? leftSpawnPoint : rightSpawnPoint;
             if (prefab == null || spawnPoint == null || judgmentPoint == null) return;
 

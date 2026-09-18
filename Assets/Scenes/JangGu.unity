@@ -46235,7 +46235,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c4405a7cd90b6644bcf7889042c0ffb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FindOurSound.JangGuRhythm.JangguHitTrigger
-  side: 0
+  side: 2
+  overrideRequiredHand: 1
+  requiredHand: 0
   noteSpawner: {fileID: 2094665664}
   feedback: {fileID: 764180489}
   hitCooldown: 0.15

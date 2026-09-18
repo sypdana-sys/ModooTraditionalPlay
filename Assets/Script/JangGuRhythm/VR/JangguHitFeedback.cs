@@ -18,7 +18,12 @@ namespace FindOurSound.JangGuRhythm
         {
             if (hitText == null) return;
 
-            string triggerLabel = triggerSide == NoteSide.Left ? "왼쪽(북편)" : "오른쪽(채편)";
+            string triggerLabel = triggerSide switch
+            {
+                NoteSide.Left => "왼쪽(북편)",
+                NoteSide.Right => "오른쪽(채편)",
+                _ => "넘겨치기",
+            };
             string controllerLabel = controllerSide == NoteSide.Left ? "왼손 컨트롤러" : "오른손 컨트롤러";
 
             hitText.text = $"{triggerLabel} 트리거 ← {controllerLabel}" + (correctHand ? string.Empty : "  (교차 타격)");

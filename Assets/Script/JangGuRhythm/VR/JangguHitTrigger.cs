@@ -9,8 +9,13 @@ namespace FindOurSound.JangGuRhythm
     [RequireComponent(typeof(Collider))]
     public class JangguHitTrigger : MonoBehaviour
     {
-        [Tooltip("이 트리거가 담당하는 장구 쪽 (왼쪽=북편/원, 오른쪽=채편/사각형)")]
+        [Tooltip("이 트리거가 어느 노트 풀을 판정할지 (Left/Right/Cross). NoteSpawner.TryHit에 그대로 전달된다.")]
         public NoteSide side;
+
+        [Tooltip("체크하면 아래 requiredHand로 지정한 손만 인정한다. 끄면 side와 같은 쪽 손만 인정한다. " +
+            "넘겨치기(RightHitTrigger_GungChe)처럼 판정할 노트 풀(side=Cross)과 실제로 쳐야 하는 손(왼손)이 다를 때 켠다.")]
+        public bool overrideRequiredHand;
+        public NoteSide requiredHand;
 
         public NoteSpawner noteSpawner;
         public JangguHitFeedback feedback;
@@ -29,7 +34,8 @@ namespace FindOurSound.JangGuRhythm
 
             lastHitTime = Time.time;
 
-            bool correctHand = marker.side == side;
+            NoteSide expectedHand = overrideRequiredHand ? requiredHand : side;
+            bool correctHand = marker.side == expectedHand;
             feedback?.ShowHit(side, marker.side, correctHand);
 
             Debug.Log($"[JangGuRhythm] {name} 트리거 충돌: other={other.name}, controllerSide={marker.side}, correctHand={correctHand}");

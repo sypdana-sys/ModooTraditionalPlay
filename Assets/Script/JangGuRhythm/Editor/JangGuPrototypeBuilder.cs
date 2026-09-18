@@ -60,7 +60,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Selection.activeGameObject = prefabAsset != null ? window.gameObject : root;
 
-            Debug.Log("[JangGuRhythm] 프로토타입 생성 완료. Game 뷰에서 Play를 눌러 ←/A(콩, 왼쪽) · →/L(덕, 오른쪽) 키로 테스트하세요.");
+            Debug.Log("[JangGuRhythm] 프로토타입 생성 완료. Game 뷰에서 Play를 눌러 ←/A(콩, 왼쪽) · →/L(덕, 오른쪽) · O(넘겨치기) 키로 테스트하세요.");
         }
 
         static void EnsureKoreanFont()
@@ -393,6 +393,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
                 new NoteData { beat = 5f, side = NoteSide.Right, syllable = "덕" },
                 new NoteData { beat = 6f, side = NoteSide.Left,  syllable = "콩" },
                 new NoteData { beat = 7f, side = NoteSide.Right, syllable = "덕" },
+                new NoteData { beat = 8f, side = NoteSide.Cross, syllable = "넘겨" },
             };
 
             AssetDatabase.CreateAsset(chart, ChartAssetPath);

@@ -42,3 +42,6 @@ MonoBehaviour:
   - beat: 7
     side: 1
     syllable: "\uB355"
+  - beat: 8
+    side: 2
+    syllable: "\uB118\uACA8"

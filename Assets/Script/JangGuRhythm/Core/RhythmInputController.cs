@@ -16,6 +16,9 @@ namespace FindOurSound.JangGuRhythm
         public Key rightKeyPrimary = Key.RightArrow;
         public Key rightKeySecondary = Key.L;
 
+        [Tooltip("넘겨치기(왼손으로 채편/RightHitTrigger_GungChe를 쳐서 넘겨 치는 동작)를 키보드로 테스트하기 위한 키")]
+        public Key crossHitKey = Key.O;
+
         void Update()
         {
             Keyboard kb = Keyboard.current;
@@ -29,6 +32,12 @@ namespace FindOurSound.JangGuRhythm
             if (kb[rightKeyPrimary].wasPressedThisFrame || kb[rightKeySecondary].wasPressedThisFrame)
             {
                 noteSpawner.TryHit(NoteSide.Right);
+            }
+
+            if (kb[crossHitKey].wasPressedThisFrame)
+            {
+                // 넘겨치기: RightHitTrigger_GungChe와 동일하게 Cross 노트로 판정한다.
+                noteSpawner.TryHit(NoteSide.Cross);
             }
         }
     }
