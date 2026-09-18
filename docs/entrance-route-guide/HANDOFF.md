@@ -240,3 +240,55 @@ Unity MCP로 `Assets/Naganeupseong`의 Material 335개를 조사하고 천·목�
 - 사용자 지침: 앞으로 작성하는 프로젝트 스크립트는 Assets/Script 폴더에 저장한다.
 - DoorSceneTransition.cs를 Assets/RouteGuide/Entrance/Scripts에서 Assets/Script/DoorSceneTransition.cs로 Unity AssetDatabase.MoveAsset을 사용하여 이동했다. meta GUID와 Scene 컴포넌트 참조 유지. 기능 변경 없음.
 - 과거 기록의 이전 스크립트 경로는 작업 당시 경로이며 현재 경로는 Assets/Script/DoorSceneTransition.cs이다.
+
+## 2026-09-18 — 이동 시 화면 축소(터널링 비네트) 해제
+- Unity MCP와 패키지 TunnelingVignetteController.Update 소스 확인: 활성 LocomotionProvider에 BeginTunnelingVignette 호출.
+- main_playoursound의 XR Origin Hands (XR Rig)/Camera Offset/Main Camera/TunnelingVignette에서 Move 연결의 Enabled만 false로 변경. Turn/Climb/Jump는 기존 true 유지.
+- 카메라 FOV 변경 코드는 Assets 내 C# 검색에서 발견되지 않음. 새 스크립트 없이 Scene 설정만 수정.
+- XR Rig Transform, Move 컴포넌트 직렬화, Camera FOV 전후 동일 확인. Scene 저장 완료(기존 사용자 미저장 상태 보존 포함).
+- Editor 설정 검증 완료. 실제 HMD 레버 이동 시 시야 반응은 실기 재확인 필요.
+- 별도 백업 없음: 기존 사용자 Git 백업 방침 유지.
+
+## 2026-09-18 — 체험장 문 안내 UI
+- main_playoursound의 RouteGuide/DoorExperienceUI 아래 JangguDoorUI, SabangchigiDoorUI 추가.
+- Door01k (3): 장구 체험 / Door01k (7): 사방치기 체험. 공통 안내: 문을 가리키고 / 트리거를 누르세요.
+- 기존 EntranceGuideSign의 목재 안내면과 TMP 텍스트를 재사용한 고정 월드 공간 UI. 근접 시 나타나는 팝업이 아니라 항상 표시되는 문 부착 안내판.
+- 문 기준 world offset (0,0,0.24), world yaw 180도, scale 0.8. 기존 목재 재질과 TMP 셰이더 유지. 새 런타임 스크립트 없음.
+- 기존 NotoSansKR-Bold.otf에서 필요한 한글을 담은 Assets/RouteGuide/Entrance/Fonts/DoorExperience_SDF.asset 및 meta 생성. 원본 폰트/기존 폰트 에셋 수정 없음.
+- UI Collider 비활성. 두 문 전방 Raycast가 각각 기존 문 Collider에 도달함을 확인. DoorSceneTransition 컴포넌트 유지.
+- XR Rig Transform 동일, Scene 저장, Console Error/Warning 0. 두 문 앞 카메라 화면 확인. HMD 글자 가독성 및 실제 조준/전환은 실기 확인 필요.
+- 변경: Assets/Scenes/main_playoursound.unity, 위 폰트 asset/meta, HANDOFF.md/WORKLOG.md, images/20260918-janggu-door-ui.png 및 20260918-sabang-door-ui.png.
+- 사용자 미저장 변경 보존. 다른 Scene 열기/저장 없음. 별도 백업/커밋/푸시 없음.
+
+## 2026-09-18 — 사용자가 이동한 문 안내판 지지 기둥 추가
+- JangguDoorUI, SabangchigiDoorUI의 사용자 지정 Position/Rotation/Scale을 그대로 보존.
+- 기존 EntranceGuideSign/Post_L을 재사용하여 안내판별 Post_L/Post_R 추가(총4개). 기존 목재 재질 유지.
+- TerrainCollider 하향 Raycast로 각 지면 측정, 지면 아래 0.03m까지 기둥 연결. 실제 높이: 장구 1.537873/1.581544m, 사방치기 1.657944/1.534923m.
+- 기둥 Collider 비활성: 이동 및 문 조준 차단 방지. 새 스크립트/재질 없음.
+- 두 안내판 Transform 및 XR Rig Transform 직렬화 전후 동일. 대상 main_playoursound 저장, 두 안내판 화면 확인.
+- 변경: Assets/Scenes/main_playoursound.unity, HANDOFF.md/WORKLOG.md, images/20260918-janggu-ui-posts.png 및 20260918-sabang-ui-posts.png. HMD 실기 미검증. 별도 백업 없음.
+
+## 2026-09-18 — 문 조준 피드백
+- Assets/Script/DoorHoverFeedback.cs 및 meta 추가. 두 문에 연결된 컨트롤러 NearFarInteractor의 hover 상태만 감지.
+- 문 조준 중 해당 안내판 체험명/조작 문구 금색 강조, 문구는 트리거를 누르세요. 조준 해제 시 원래 문구/색 복원.
+- Inspector Enable Hover Feedback Bool 제공. false 또는 컴포넌트 비활성화 시 복원. 양손 중 하나라도 hover 중이면 강조 유지.
+- DoorSceneTransition.cs, XR 이동/입력, 안내판 Transform/재질/폰트 변경 없음. main_playoursound Scene 컴포넌트 추가 및 연결 저장.
+- Editor에서 hover 목록을 임시 주입하여 두 문 각각 idle, 좌손, 우손 유지, Bool off/on, exit, 재hover, OnDisable 검증 16개 통과. 테스트 hover/문구/색은 finally로 복원. HMD 실제 ray hover 및 조작은 미검증.
+- 강조 화면 images/20260918-door-hover-feedback.png 확인. XR Rig Transform 동일. 별도 백업/커밋/푸시 없음.
+- 변경: Assets/Script/DoorHoverFeedback.cs(.meta), Assets/Scenes/main_playoursound.unity, HANDOFF.md/WORKLOG.md, 위 이미지.
+
+## 2026-09-18 — 문/안내판 프리팹 관리
+- Assets/RouteGuide/Entrance/Prefabs/ExperienceDoor.prefab: KHS Door01k.prefab을 기반으로 만든 시각/Collider 전용 Variant. 원본 KHS 프리팹 및 기존 Scene 문 연결은 유지. 신규 문 배치 시 현재 단계에서는 Scene 전환/피드백 자동 연결되지 않음.
+- 같은 폴더 JangguDoorUI.prefab, SabangchigiDoorUI.prefab: 현재 체험명, 목재 안내면, 기둥 2개를 포함한 프리팹. 기존 Scene의 두 안내판을 각각 해당 프리팹 인스턴스로 연결.
+- 향후 안내판 하나를 배치하고 VillageTitle/ DestinationArrow TMP 문구 및 기둥 높이를 인스턴스에서 조정 가능. 현재 두 안내판은 별도 프리팹이며 공통 베이스 통합은 하지 않음.
+- 검증: 문2개/안내판2개/XR Rig Transform 직렬화 전후 동일, 기존 DoorSceneTransition/DoorHoverFeedback 참조 동일, prefab asset 생성 확인, 루트 Missing Script 0, Console Error/Warning 0, main_playoursound 저장 완료.
+- 변경: 위 prefab3개/meta 및 Prefabs.meta, Assets/Scenes/main_playoursound.unity, HANDOFF.md/WORKLOG.md. 새 스크립트 없음. 별도 백업/커밋/푸시 없음.
+
+## 2026-09-18 — 문 프리팹 목적지 Scene 지정
+- ExperienceDoor.prefab에 XRSimpleInteractable 및 DoorSceneTransition 추가. 기존 MeshCollider 등록, TransformPosition 거리 계산. 목적지 기본값은 비어 있음.
+- Assets/Script/DoorSceneTransition.cs: 좌/우 참조를 둘 다 비운 경우 hover 중인 XRBaseInputInteractor의 Activate 새 입력을 검사. 기존 명시 컨트롤러 방식 유지.
+- Assets/Script/Editor/DoorSceneTransitionEditor.cs(.meta), Editor.meta 추가. Inspector 이동할 Scene에 SceneAsset 드래그로 지정. 경로를 런타임용 문자열로 저장하고 해당 Scene을 EditorBuildSettings에 활성 등록(기존 목록/순서 유지). 선택 해제 시 목적지 비움; 빌드 목록에서는 임의 삭제하지 않음.
+- 사용: ExperienceDoor를 Scene에 배치 → 이동할 Scene 지정 → 저장. 컨트롤러 필드는 기본 비움. 안내판/조준 피드백 자동 연결은 이번 범위 밖.
+- 검증: 컴파일 성공, 입력 판정12개(기존8+자동4) 통과, 커스텀 Inspector 타입/프리팹 Collider 및 컴포넌트 확인. 기존 (3) JangGu/(7) SaBang 매핑과 컨트롤러 참조 유지.
+- 실제 Scene 로드 및 HMD 실기 미검증. 대상 게임 Scene을 열거나 저장하지 않음. 이번에는 새 목적지를 선택하지 않아 Build Settings 변경 없음.
+- 변경: 위 스크립트/Editor 및 meta, ExperienceDoor.prefab, docs/entrance-route-guide/HANDOFF.md/WORKLOG.md/prefab-door-trigger-validation.cs.txt. 별도 백업/커밋/푸시 없음.
