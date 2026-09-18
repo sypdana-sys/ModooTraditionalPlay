@@ -23,8 +23,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
     // LateUpdate reads hover after XRI's dynamic interaction update. Selection/grip is not required.
     private void LateUpdate()
     {
-        if (transitionInProgress ||
-            (!HasTriggerRequest(leftController) && !HasTriggerRequest(rightController)))
+        if (transitionInProgress || !HasAnyTriggerRequest())
             return;
 
         var buildIndex = string.IsNullOrEmpty(destinationScenePath)
@@ -52,10 +51,26 @@ public sealed class DoorSceneTransition : MonoBehaviour
         }
     }
 
+    private bool HasAnyTriggerRequest()
+    {
+        if (leftController != null || rightController != null)
+            return HasTriggerRequest(leftController) || HasTriggerRequest(rightController);
+
+        if (interactable == null || !interactable.isActiveAndEnabled)
+            return false;
+        foreach (var hovering in interactable.interactorsHovering)
+        {
+            if (hovering is XRBaseInputInteractor controller && HasTriggerRequest(controller))
+                return true;
+        }
+        return false;
+    }
+
     private bool HasTriggerRequest(XRBaseInputInteractor controller)
     {
         return controller != null && controller.isActiveAndEnabled &&
-               (controller == leftController || controller == rightController) &&
+               ((leftController == null && rightController == null) ||
+                controller == leftController || controller == rightController) &&
                interactable != null && interactable.isActiveAndEnabled &&
                interactable.interactorsHovering.Contains(controller) &&
                controller.activateInput.ReadWasPerformedThisFrame();
