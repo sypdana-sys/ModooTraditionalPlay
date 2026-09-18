@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d7c1e3db46786d4ab8516747bc71640, type: 3}
+  m_Name: JangdanChart_Basic
+  m_EditorClassIdentifier: Assembly-CSharp::FindOurSound.JangGuRhythm.JangGuChart
+  jangdanName: "\uAE30\uBCF8 \uC7A5\uB2E8 (\uCF69\uB355)"
+  bpm: 92
+  leadInSeconds: 1.5
+  tailBeats: 2
+  loop: 1
+  notes:
+  - beat: 0
+    side: 0
+    syllable: "\uCF69"
+  - beat: 1
+    side: 1
+    syllable: "\uB355"
+  - beat: 2
+    side: 0
+    syllable: "\uCF69"
+  - beat: 3
+    side: 1
+    syllable: "\uB355"
+  - beat: 4
+    side: 0
+    syllable: "\uCF69"
+  - beat: 5
+    side: 1
+    syllable: "\uB355"
+  - beat: 6
+    side: 0
+    syllable: "\uCF69"
+  - beat: 7
+    side: 1
+    syllable: "\uB355"

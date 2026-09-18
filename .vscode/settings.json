@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "ModooTraditionalPlay.slnx"
+    "dotnet.defaultSolution": "Find_our_Sound.slnx"
 }
