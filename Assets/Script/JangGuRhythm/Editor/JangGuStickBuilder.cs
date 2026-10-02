@@ -8,6 +8,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
     /// 프리팹 루트(0,0,0)가 손으로 쥐는 지점이고 채는 +Z 방향으로 뻗는다.
     /// 컨트롤러의 StickPivot 아래에 위치 0으로 넣으면 손잡이가 손에 온다.
     /// 타격 Collider는 실제로 장구를 치는 끝부분(궁채 공, 열채 가는 끝)에만 둔다.
+    /// 루트에는 StickPhysicsFollower(장구를 통과하지 않게 속도로 컨트롤러를 따라감)와 쥐는 손을 표시하는 ControllerSideMarker를 둔다.
     /// 여러 번 실행해도 같은 경로에 덮어써서 재생성된다.
     /// </summary>
     public static class JangGuStickBuilder
@@ -17,6 +18,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
 
         const string GungChePrefabPath = StickFolder + "/GungChe.prefab";
         const string YeolChePrefabPath = StickFolder + "/YeolChe.prefab";
+        const string SettingsPath = "Assets/Data/JangGuRhythm/JangGuSettings.asset";
 
         [MenuItem("Tools/JangGu Rhythm/Build Stick Prefabs (GungChe, YeolChe)")]
         public static void Build()
@@ -27,9 +29,10 @@ namespace FindOurSound.JangGuRhythm.EditorTools
             Material lightWood = GetOrCreateMaterial("Stick_LightWood", new Color(0.88f, 0.78f, 0.58f), 0.3f);
             Material ballWood = GetOrCreateMaterial("Stick_BallWood", new Color(0.62f, 0.45f, 0.3f), 0.4f);
             Material bamboo = GetOrCreateMaterial("Stick_Bamboo", new Color(0.8f, 0.66f, 0.38f), 0.35f);
+            JangGuSettings settings = GetOrCreateSettings();
 
-            BuildGungChe(grip, lightWood, ballWood);
-            BuildYeolChe(bamboo);
+            BuildGungChe(grip, lightWood, ballWood, settings);
+            BuildYeolChe(bamboo, settings);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -37,7 +40,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
         }
 
         /// <summary>궁채: 검은 손잡이 + 가는 나무 자루 + 끝의 나무 공. 왼손용.</summary>
-        static void BuildGungChe(Material grip, Material shaft, Material ball)
+        static void BuildGungChe(Material grip, Material shaft, Material ball, JangGuSettings settings)
         {
             GameObject root = new GameObject("GungChe");
 
@@ -51,11 +54,12 @@ namespace FindOurSound.JangGuRhythm.EditorTools
             head.transform.localScale = Vector3.one * 0.038f;
             head.GetComponent<Renderer>().sharedMaterial = ball;
 
+            AddPhysicsFollow(root, NoteSide.Left, settings);
             SavePrefab(root, GungChePrefabPath);
         }
 
         /// <summary>열채: 넓고 납작한 손잡이 + 가늘고 긴 대나무 막대. 가는 끝으로 친다. 오른손용.</summary>
-        static void BuildYeolChe(Material bamboo)
+        static void BuildYeolChe(Material bamboo, JangGuSettings settings)
         {
             GameObject root = new GameObject("YeolChe");
 
@@ -68,6 +72,7 @@ namespace FindOurSound.JangGuRhythm.EditorTools
             tipCollider.center = new Vector3(0f, 0f, 0.4f);
             tipCollider.size = new Vector3(2f, 2f, 0.2f);
 
+            AddPhysicsFollow(root, NoteSide.Right, settings);
             SavePrefab(root, YeolChePrefabPath);
         }
 
@@ -96,10 +101,38 @@ namespace FindOurSound.JangGuRhythm.EditorTools
             return go;
         }
 
+        static void AddPhysicsFollow(GameObject root, NoteSide hand, JangGuSettings settings)
+        {
+            Rigidbody body = root.AddComponent<Rigidbody>();
+            body.mass = 0.1f;
+            body.angularDamping = 0f;
+            body.useGravity = false;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+            StickPhysicsFollower follower = root.AddComponent<StickPhysicsFollower>();
+            SerializedObject serializedFollower = new SerializedObject(follower);
+            serializedFollower.FindProperty("settings").objectReferenceValue = settings;
+            serializedFollower.ApplyModifiedPropertiesWithoutUndo();
+
+            root.AddComponent<ControllerSideMarker>().side = hand;
+        }
+
         static void SavePrefab(GameObject root, string path)
         {
             PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
+        }
+
+        static JangGuSettings GetOrCreateSettings()
+        {
+            JangGuSettings settings = AssetDatabase.LoadAssetAtPath<JangGuSettings>(SettingsPath);
+            if (settings != null) return settings;
+
+            EnsureFolder(System.IO.Path.GetDirectoryName(SettingsPath).Replace('\\', '/'));
+            settings = ScriptableObject.CreateInstance<JangGuSettings>();
+            AssetDatabase.CreateAsset(settings, SettingsPath);
+            return settings;
         }
 
         static Material GetOrCreateMaterial(string name, Color color, float smoothness)

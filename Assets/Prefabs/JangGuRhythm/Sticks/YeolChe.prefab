@@ -99,6 +99,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8131555377926612758}
+  - component: {fileID: 5410000000000000011}
+  - component: {fileID: 5410000000000000012}
+  - component: {fileID: 5410000000000000013}
   m_Layer: 0
   m_Name: YeolChe
   m_TagString: Untagged
@@ -235,3 +238,59 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!54 &5410000000000000011
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4091057651463323413}
+  serializedVersion: 5
+  m_Mass: 0.1
+  m_LinearDamping: 0
+  m_AngularDamping: 0
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 2
+--- !u!114 &5410000000000000012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4091057651463323413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae8232a4992441d498d66e01150673b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FindOurSound.JangGuRhythm.StickPhysicsFollower
+  settings: {fileID: 11400000, guid: f02938447c854e2e889e3ebddb21b58b, type: 2}
+  target: {fileID: 0}
+  snapDistance: 0.5
+  maxAngularSpeed: 50
+--- !u!114 &5410000000000000013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4091057651463323413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45fbd2c0b399a934cafe66de36341cb7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FindOurSound.JangGuRhythm.ControllerSideMarker
+  side: 1

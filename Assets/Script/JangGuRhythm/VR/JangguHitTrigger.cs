@@ -1,10 +1,14 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Haptics;
 
 namespace FindOurSound.JangGuRhythm
 {
     /// <summary>
     /// 장구 좌/우에 배치되는 트리거 콜라이더. 어떤 컨트롤러가 쳤는지 ControllerSideMarker로 판별해서
     /// 피드백을 표시하고, NoteSpawner(있다면)에 판정을 전달한다.
+    /// 맞는 손으로 쳤을 때 판정이 좋을수록 그 손의 컨트롤러를 세게 진동시킨다(세기는 JangGuSettings).
+    /// 틀린 손 접촉은 진동하지 않는다. 겹친 트리거(RightHitTrigger_GungChe/YeolChe)가 동시에 닿을 때
+    /// 약한 진동이 판정 진동을 덮어쓰지 않게 하기 위해서다.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public class JangguHitTrigger : MonoBehaviour
@@ -19,6 +23,9 @@ namespace FindOurSound.JangGuRhythm
 
         public NoteSpawner noteSpawner;
         public JangguHitFeedback feedback;
+
+        [Tooltip("진동 세기 설정. 비우면 진동하지 않는다.")]
+        public JangGuSettings settings;
 
         [Tooltip("연속 타격 사이 최소 간격(초). 콜라이더가 여러 프레임 겹칠 때 중복 판정을 막는다.")]
         public float hitCooldown = 0.15f;
@@ -40,10 +47,31 @@ namespace FindOurSound.JangGuRhythm
 
             Debug.Log($"[JangGuRhythm] {name} 트리거 충돌: other={other.name}, controllerSide={marker.side}, correctHand={correctHand}");
 
-            if (correctHand)
+            if (!correctHand) return;
+
+            JudgeResult? result = null;
+            if (noteSpawner != null && noteSpawner.TryHit(side, out JudgeResult judged))
             {
-                noteSpawner?.TryHit(side);
+                result = judged;
             }
+
+            PlayHaptic(other, result);
+        }
+
+        void PlayHaptic(Collider other, JudgeResult? result)
+        {
+            if (settings == null) return;
+
+            float amplitude = settings.GetHapticAmplitude(result);
+            if (amplitude <= 0f) return;
+
+            // 장구에 막히는 채는 컨트롤러에서 분리되므로 따라가는 대상(StickPivot)에서 컨트롤러를 찾는다.
+            StickPhysicsFollower follower = other.GetComponentInParent<StickPhysicsFollower>();
+            Transform controllerSide = follower != null && follower.Target != null ? follower.Target : other.transform;
+            HapticImpulsePlayer haptics = controllerSide.GetComponentInParent<HapticImpulsePlayer>();
+            if (haptics == null) return;
+
+            haptics.SendHapticImpulse(amplitude, settings.hapticDuration);
         }
     }
 }

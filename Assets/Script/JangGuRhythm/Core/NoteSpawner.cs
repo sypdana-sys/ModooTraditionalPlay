@@ -97,6 +97,13 @@ namespace FindOurSound.JangGuRhythm
         /// <summary>지정한 쪽(Left/Right)에 대해 지금 시점에서 가장 가까운 노트를 판정한다.</summary>
         public bool TryHit(NoteSide side)
         {
+            return TryHit(side, out _);
+        }
+
+        /// <summary>TryHit과 같고, 판정에 성공하면 결과(Perfect/Good/Miss)를 함께 돌려준다.</summary>
+        public bool TryHit(NoteSide side, out JudgeResult result)
+        {
+            result = JudgeResult.Miss;
             Note best = null;
             float bestAbs = float.MaxValue;
 
@@ -120,7 +127,7 @@ namespace FindOurSound.JangGuRhythm
                 return false;
             }
 
-            JudgeResult result = bestAbs <= perfectWindow ? JudgeResult.Perfect
+            result = bestAbs <= perfectWindow ? JudgeResult.Perfect
                 : bestAbs <= goodWindow ? JudgeResult.Good
                 : JudgeResult.Miss;
 
