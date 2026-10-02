@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cea7ab350294eaa80f4029772ab4bf6, type: 3}
   m_Name: JangGuSettings
   m_EditorClassIdentifier: Assembly-CSharp::FindOurSound.JangGuRhythm.JangGuSettings
-  sticksCollideWithJanggu: 1
+  sticksCollideWithJanggu: 0
   hapticStrength: 1
   perfectAmplitude: 1
   goodAmplitude: 0.6
