@@ -10,6 +10,10 @@ namespace FindOurSound.JangGuRhythm
     {
         public JangGuChart chart;
 
+        [Tooltip("끄면 Play()가 호출될 때까지 시계를 멈춘다. GripGuide처럼 연주 전 안내를 보여줄 때 끈다.")]
+        public bool playOnStart = true;
+
+        public bool IsPlaying { get; private set; }
         public float SongPositionSeconds { get; private set; }
         public float SecPerBeat => chart != null && chart.bpm > 0f ? 60f / chart.bpm : 0.5f;
 
@@ -21,6 +25,14 @@ namespace FindOurSound.JangGuRhythm
         {
             SongPositionSeconds = 0f;
             RecalculateLoopLength();
+            IsPlaying = playOnStart;
+        }
+
+        /// <summary>처음부터 시계를 시작한다. playOnStart를 끈 경우 안내가 끝난 뒤 호출한다.</summary>
+        public void Play()
+        {
+            SongPositionSeconds = 0f;
+            IsPlaying = true;
         }
 
         void RecalculateLoopLength()
@@ -37,7 +49,7 @@ namespace FindOurSound.JangGuRhythm
 
         void Update()
         {
-            if (chart == null) return;
+            if (chart == null || !IsPlaying) return;
 
             SongPositionSeconds += Time.deltaTime;
 
